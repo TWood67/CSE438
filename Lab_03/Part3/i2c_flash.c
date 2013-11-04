@@ -3,81 +3,11 @@
  * Created By: Taylor Wood
  * ASU ID: 1202553801
  * Class: CSE 438
- * Assignment: 3 - 3
+ * Assignment: 3 - 2
  ***********************************************************/
 
 #include "i2c_flash.h"
 
-/* Add to list
- * Adds an item to the queue
- * TESTED
- */
-int add_to_list(struct queue_token *tok) {
-
-	int res = 0;
-
-	//spin lock
-	spin_lock(token_list->lock);
-
-	//give the list an id
-	tok->id = token_id;
-	token_id++;
-	
-	//first we check to see if there is anything in the queue
-	//we only need to check the head since the linked list 
-	//will function as a FIFO queue. In other words, if there
-	//is no head then there is nothing in the list
-	//printk("\nPreparing to add to the list.\n\nThe list head is [%d]\n", head->id);
-	printk("\nChecking for head\n");
-	if (token_list->head == NULL) {
-		//this will be the head node
-		res = create_list(tok);
-		spin_unlock(token_list->lock);
-		return res;
-	}
-
-	//if the user passes an empty token
-	if (tok == NULL) {
-		spin_unlock(token_list->lock);
-		return -1;
-	}
-
-	//queue the token
-	tok->next = NULL;
-	token_list->curr->next = tok;
-	token_list->curr = tok;
-
-	spin_unlock(token_list->lock);
-
-	return res;
-	
-}
-
-/* Create List 
- * Description: Creates the inital list
- * TESTED
- */
-int create_list(struct queue_token *tok) {
-
-	//if the node was improperly created
-	if (tok == NULL) {
-		printk("\n Node creation failed.\n");
-		return -1;
-	}
-	tok->next = NULL;
-
-	//global variables in the header
-	token_list->head = token_list->curr = tok;
-
-	printk("\nHead was created with an ID [%d].\n", token_list->head->id);
-	return 0;
-}
-
-static int queue_flash_open(struct inode *inode, struct file *file) {		
-
-	return i2c_flash_open(inode, file);
-
-}
 
 static int i2c_flash_open(struct inode *inode, struct file *file)
 {
@@ -113,12 +43,6 @@ static int i2c_flash_open(struct inode *inode, struct file *file)
 	return 0;
 }
 
-static int queue_flash_release(struct inode *inode, struct file *file) {
-
-	return i2c_flash_release(inode, file);
-
-}
-
 static int i2c_flash_release(struct inode *inode, struct file *file)
 {
 	struct i2c_client *client = file->private_data;
@@ -130,22 +54,6 @@ static int i2c_flash_release(struct inode *inode, struct file *file)
 	return 0;
 }
 
-//TODO modify for queue
-static ssize_t queue_flash_read(struct file *file, char __user *buf, size_t count, loff_t *offset) {
-
-	//create a token and add it to the queue
-	struct queue_token *tok = kmalloc(sizeof(struct queue_token), GFP_KERNEL);
-
-	tok->buf = kmalloc(PAGE_BYTES * count, GFP_KERNEL);
-	tok->type = 0;	//0 is read
-	
-	if (add_to_list(tok) < 0) return -1;
-	
-	return i2c_flash_read(file, buf, count, offset);
-
-}
-
-//TODO modify for queue
 static ssize_t i2c_flash_read(struct file *file, char __user *buf, size_t count, loff_t *offset)
 {
 	char *tmp = kmalloc(PAGE_BYTES * count, GFP_KERNEL);
@@ -160,7 +68,7 @@ static ssize_t i2c_flash_read(struct file *file, char __user *buf, size_t count,
 		return -ENOMEM;
 
 	//acquire semaphore
-	//if (down_interruptible(sem)) return -ERESTARTSYS;
+	if (down_interruptible(sem)) return -ERESTARTSYS;
 
 	for (i = 0; i < count; i++) {
 
@@ -195,17 +103,10 @@ static ssize_t i2c_flash_read(struct file *file, char __user *buf, size_t count,
 	ret = copy_to_user(buf, tmp, count * PAGE_BYTES) ? -EFAULT : ret;
 
 	//release semaphore
-	//up(sem);
+	up(sem);
 	
 	kfree(tmp);
 	return ret;
-}
-
-//TODO modify for 
-static ssize_t queue_flash_write(struct file *file, const char __user *buf, size_t count, loff_t *offset) {
-	
-	return i2c_flash_write(file, buf, count, offset);
-	
 }
 
 static ssize_t i2c_flash_write(struct file *file, const char __user *buf, size_t count, loff_t *offset)
@@ -217,7 +118,7 @@ static ssize_t i2c_flash_write(struct file *file, const char __user *buf, size_t
 	int i = 0;
 
 	//acquire semaphore
-	//if (down_interruptible(sem)) return -ERESTARTSYS;
+	if (down_interruptible(sem)) return -ERESTARTSYS;
 
 	for (i = 0; i < count; i++) {
 		
@@ -257,19 +158,13 @@ static ssize_t i2c_flash_write(struct file *file, const char __user *buf, size_t
 	}
 
 	//release semaphore
-	//up(sem);
+	up(sem);
 
 	kfree(tmp);
 	return ret;
 }
 
-static loff_t queue_flash_lseek(struct file *file, loff_t offset, int whence) {
-	
-	return i2c_flash_lseek(file, offset, whence);
-
-}
-
-static loff_t i2c_flash_lseek(struct file *file, loff_t offset, int whence) {
+loff_t i2c_flash_lseek(struct file *file, loff_t offset, int whence) {
 	
 	struct i2c_client *client = file->private_data;
 	char *asBuf = kmalloc(2, GFP_KERNEL);
@@ -278,7 +173,7 @@ static loff_t i2c_flash_lseek(struct file *file, loff_t offset, int whence) {
 
 	//get the semaphore here, we don't want the offset
 	//changed while something is trying to write
-	//if (down_interruptible(sem)) return -ERESTARTSYS;
+	if (down_interruptible(sem)) return -ERESTARTSYS;
 	set_offset(offset);
 
 	//Addres Low
@@ -293,7 +188,7 @@ static loff_t i2c_flash_lseek(struct file *file, loff_t offset, int whence) {
 
 	res = i2c_master_send(client, asBuf, 2);
 
-	//up(sem);
+	up(sem);
 
 	if (res < 0) {
 		printk("\nWriting the address failed!\n");
@@ -321,28 +216,33 @@ static int __init i2c_flash_dev_init(void)
 
 	printk(KERN_INFO "i2c /dev entries driver\n");
 
-	if (alloc_chrdev_region(&queue_flash_dev_number, 0, 1, DEVICE_NAME)) {
+	//res = register_chrdev(I2C_MAJOR, "i2c", &i2cdev_fops);
+	//if (res)
+		//goto out;
+	if (alloc_chrdev_region(&i2c_flash_dev_number, 0, 1, DEVICE_NAME)) {
 		printk(KERN_DEBUG "Can't registed device \"%s\"\n", DEVICE_NAME);
 	}
 
+	i2c_flash_dev_class = class_create(THIS_MODULE, DEVICE_NAME);
+
 	/* Bind to already existing adapters right away */
 	//i2c_for_each_dev(NULL, i2cdev_attach_adapter);
-	queue_flash_devp = kmalloc(sizeof(struct queue_flash_dev), GFP_KERNEL);
+	i2c_flash_devp = kmalloc(sizeof(struct i2c_flash_dev), GFP_KERNEL);
 
-	if (!queue_flash_devp) {
+	if (!i2c_flash_devp) {
 		printk("Bad kmalloc on device \"%s\"\n", DEVICE_NAME);
 		return -ENOMEM;
 	}
 
 	//request I/O region
-	sprintf(queue_flash_devp->name, DEVICE_NAME);
+	sprintf(i2c_flash_devp->name, DEVICE_NAME);
 
 	//connect fops with the cdev
-	cdev_init(&queue_flash_devp->cdev, &queue_fops);
-	queue_flash_devp->cdev.owner = THIS_MODULE;
+	cdev_init(&i2c_flash_devp->cdev, &My_fops);
+	i2c_flash_devp->cdev.owner = THIS_MODULE;
 
 	//connect the major/minor num to the cdev
-	res = cdev_add(&queue_flash_devp->cdev, MKDEV(MAJOR(queue_flash_dev_number), 0), 1);
+	res = cdev_add(&i2c_flash_devp->cdev, MKDEV(MAJOR(i2c_flash_dev_number), 0), 1);
 
 	if (res < 0) {
 		printk("Bad cdev on device \"%s\"\n", DEVICE_NAME);
@@ -350,16 +250,14 @@ static int __init i2c_flash_dev_init(void)
 	}
 
 	//send uevents to udev to create /dev nodes
-	queue_flash_dev_class = class_create(THIS_MODULE, DEVICE_NAME);
-	device_create(queue_flash_dev_class, NULL, MKDEV(MAJOR(queue_flash_dev_number), 0), NULL, DEVICE_NAME);
+	device_create(i2c_flash_dev_class, NULL, MKDEV(MAJOR(i2c_flash_dev_number), 0), NULL, DEVICE_NAME);
 
 	//instantiate current page to 0
 	currPage = 0;
-	token_id = 1;
 
 	//allocate memory and initialize the semaphore
-	//sem = kmalloc(sizeof(struct semaphore), GFP_KERNEL);
-	//sema_init(sem, 1);
+	sem = kmalloc(sizeof(struct semaphore), GFP_KERNEL);
+	sema_init(sem, 1);
 
 	printk("%s initialized.\n", DEVICE_NAME);
 
@@ -370,21 +268,21 @@ static int __init i2c_flash_dev_init(void)
 static void __exit i2c_flash_dev_exit(void)
 {
 	//Release major number
-	unregister_chrdev_region((queue_flash_dev_number), 1);
+	unregister_chrdev_region((i2c_flash_dev_number), 1);
 
 	//Destroy device
-	device_destroy(queue_flash_dev_class, MKDEV(MAJOR(queue_flash_dev_number), 0));
+	device_destroy(i2c_flash_dev_class, MKDEV(MAJOR(i2c_flash_dev_number), 0));
 
-	if (queue_flash_devp) {
-		cdev_del(&queue_flash_devp->cdev);
-		kfree(queue_flash_devp);
+	if (i2c_flash_devp) {
+		cdev_del(&i2c_flash_devp->cdev);
+		kfree(i2c_flash_devp);
 	}
 
 	//Destroy driver_class
-	class_destroy(queue_flash_dev_class);
+	class_destroy(i2c_flash_dev_class);
 
 	//free the allocated space for the semaphore
-	//kfree(sem);
+	kfree(sem);
 
 	printk("%s removed.\n", DEVICE_NAME);
 
