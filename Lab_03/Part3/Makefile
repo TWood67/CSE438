@@ -20,4 +20,6 @@ clean:
 	rm -f *.mod.o
 	rm -f \.*.cmd
 	rm -f Module.markers
+	rm -f *~
+	rm -f *@*
 	rm -f $(APP)

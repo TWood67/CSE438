@@ -1,7 +1,7 @@
 obj-m:= Mydriver.o
 
 
-KDIR:= /lib/modules/$(shell uname -r)/build
+KDIR:= ~/kernel/kernel
 PWD:= $(shell pwd)
 
 APP = test_app
@@ -21,4 +21,5 @@ clean:
 	rm -f *.mod.o
 	rm -f \.*.cmd
 	rm -f Module.markers
+	rm -f *~
 	rm -f $(APP)
