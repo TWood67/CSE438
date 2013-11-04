@@ -1,1 +1,0 @@
-cmd_/home/tdwood/Documents/CSE438/Lab_01/Mydriver.ko := arm-angstrom-linux-gnueabi-ld -EL -r  -T /home/tdwood/kernel/kernel/scripts/module-common.lds --build-id  -o /home/tdwood/Documents/CSE438/Lab_01/Mydriver.ko /home/tdwood/Documents/CSE438/Lab_01/Mydriver.o /home/tdwood/Documents/CSE438/Lab_01/Mydriver.mod.o
