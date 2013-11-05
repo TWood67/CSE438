@@ -1,12 +1,12 @@
 obj-m:= i2c_flash.o
 
-KDIR:= ~/kernel ~/kernel/drivers
+KDIR:= ~/kernel
 PWD:= $(shell pwd)
 
 APP = main
 
 default:
-	arm-angstrom-linux-gnueabi-gcc -g main_03_test.c -o $(APP) -lpthread
+	arm-angstrom-linux-gnueabi-gcc -g main_03.c -o $(APP) -lpthread
 	$(MAKE) -C $(KDIR) SUBDIRS=$(PWD) modules
 
 clean:

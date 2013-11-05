@@ -52,15 +52,13 @@ int main(int argc, char **argv) {
 	//do some reading or writing
 	do {
 		printf("\n1.Read\n2.Write\n3.Set\n4.Quit\n");
-		fgets(inp, sizeof(inp), stdin);
-		sscanf(inp, "%d", &uInput);
+		scanf("%d", &uInput);
 
 		switch(uInput) {
 			case 1 	:
 				printf("\nRead Statement\n");
 				printf("\nHow many pages to read?\n");
-				fgets(inp, sizeof(inp), stdin);
-				sscanf(inp, "%d", &pageRWS);
+				scanf("%d", &pageRWS);
 				buf = malloc(sizeof(char) * 64 * pageRWS);
 				memset(buf, 0, sizeof(char) * 64 * pageRWS);
 				if(!read(fd1, buf, pageRWS)) printf("\nSomething happened when reading!\n");
@@ -70,19 +68,17 @@ int main(int argc, char **argv) {
 			case 2	:
 				printf("\nWrite Statement\n");
 				printf("\nHow many pages to write?\n");
-				fgets(inp, sizeof(inp), stdin);
-				sscanf(inp, "%d", &pageRWS);
+				scanf("%d", &pageRWS);
 				buf = malloc((sizeof(char) * 64 * pageRWS));
 				memset(buf, 0, sizeof(char) * 64 * pageRWS);
-				fgets(buf, sizeof(char) * PAGE_BYTES * pageRWS, stdin);
+				scanf("%s", buf);
 				if(!write(fd1, buf, pageRWS)) printf("\nSomething happened when writing!\n");
 				free(buf);
 				break;
 			case 3	:
 				printf("\nSet Statement\n");
 				printf("\nNew device offset?\n");
-				fgets(inp, sizeof(inp), stdin);
-				sscanf(inp, "%d", &pageRWS);
+				scanf("%d", &pageRWS);
 				if(!lseek(fd1, pageRWS, 0)) printf("\nSomething happened when setting!\n");
 				break;
 			case 4 	:

@@ -3,7 +3,7 @@
  * Created By: Taylor Wood
  * ASU ID: 1202553801
  * Class: CSE 438
- * Assignment: 3 - 2
+ * Assignment: 3 - 3
  ***********************************************************/
 #ifndef I2C_FLASH_H
 #define I2C_FLASH_H
@@ -19,8 +19,9 @@
 #include <linux/pci.h>
 #include <linux/version.h>	//preprocessor conditional statements
 #include <linux/i2c.h>
-#include <linux/semaphore.h>	//semaphores yeeeeeeeeeeeeeee
 #include <linux/delay.h>
+
+#include <linux/workqueue.h>	//for work queues
 
 
 #define DEVICE_NAME		"i2c_flash"
@@ -28,10 +29,35 @@
 #define ADAPT_NUMBR		2
 #define PAGE_BYTES		64
 #define NUM_OF_PAG		512
+#define WQUEUE_NAME		"i2c_flash_work_queue"
 
 //global variables
 int currPage;
-struct semaphore *sem;		//mutual exclusion semaphore
+
+int i2c_flash_eread, i2c_flash_ewrite;	//errors
+int i2c_flash_page_count;	//page count
+
+/*	QUEUE STATUS	  * 
+ * 0x00 	Empty	  *
+ * 0x01 	Busy	  *
+ * 0x02 	Done	  *
+ *			  */
+int i2c_flash_queue_status;	//queue status
+
+int i2c_flash_fread, i2c_flash_fwrite;	//tells whether read or write are finished
+					// -1 is 
+char *i2c_flash_rbuf, *i2c_flash_wbuf;	//buffers for read and write
+struct i2c_client *client;
+struct i2c_adapter *adap;
+struct work_struct work_read;
+struct work_struct work_write;
+
+struct i2c_flash_wq {
+
+	struct workqueue_struct *wq;	
+	int size;
+
+} *i2c_flash_wqp;
 
 struct i2c_flash_dev {
 	struct cdev cdev;	//the cdev structure
@@ -41,17 +67,22 @@ struct i2c_flash_dev {
 //prototypes fops
 static int i2c_flash_open(struct inode *, struct file *);
 static ssize_t i2c_flash_read(struct file *, char __user *, size_t, loff_t *);
+static void __i2c_flash_read(void);
 static ssize_t i2c_flash_write(struct file *, const char __user *, size_t, loff_t *);
+static void __i2c_flash_write(void);
 static int i2c_flash_release(struct inode *, struct file *);
 loff_t i2c_flash_lseek(struct file *, loff_t, int);
-void set_offset(int);
 
 //prototpes mod init/exit
 static int __init i2c_flash_dev_init(void);
 static void __exit i2c_flash_dev_exit(void);
 
+//prototpes various funciton
+void set_offset(int);
+
 struct class *i2c_flash_dev_class;      /* Tie with the device model */
 static dev_t i2c_flash_dev_number;      /* Allotted device number */
+
 
 /* File operations structure. Defined in linux/fs.h */
 static struct file_operations My_fops = {

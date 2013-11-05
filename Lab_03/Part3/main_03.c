@@ -11,77 +11,39 @@
 #include <unistd.h>
 #include <string.h>
 #include <fcntl.h>
-#include <pthread.h>
+#include <errno.h>
 
 #define ADAPT_NUMB		2
 #define PAGE_BYTES		64
-#define NUM_READ_T		10
-#define NUM_WRIT_T		10
 
-//file
-int fd1;
+/* Prints a buffer with unprintable characters */
+void printBuf(char *buf, int count, int lineLength) {
 
-void *write_request(void *arg) {
-	
-	int id;
-	char *buf = "Write thread number [%d]", (int *)arg);
-	
-	id = queue_write(fd1, buf, (int *)arg);
+        int curChar;
 
-	do {
-		ret = seek_token(id);
-		switch (ret) {
-			case -2 :
-				printf(
-				break;
-			case -1 :
-				//this is when the token is in the 
-				//queue, but not at the head
-				break;
-			case 0:
-				//token has been processed and ready 
-				//for some action
-				break;
-		}
+        for (curChar = 0; curChar < count; curChar++) {
 
-	} while (ret != 0);
-	
-}
+                if (curChar % lineLength == 0) printf("\n");
+                printf("%c", isprint(buf[curChar]) ? buf[curChar] : '.');
 
-void *read_request(void *arg) {
-	
-	int id;
-	char *buf = "Read thread number [%d]", (int *)arg);
+        }
 
-	id = queue_write(fd1, buf, 0);
-	
-	do {
-		ret = seek_token(id);
-		switch (ret) {
-			case -2 :
-				//this is when the token is added
-				//to the head
-			case -1 :
-				//this is when the token is added
-				//but not at the head position
-			case 0:
-				//token request has succeded and
-				//is no longer in queue
-		}
-	} while (ret != 0);
+        printf("\n\n");
 
 }
 
 int main(int argc, char **argv) {
 	
-	
+	//file
+	int fd1;
+	int uInput;
+	char *buf;
 	char inp[64];
 	int pageRWS;
-	int i;
+	char filename[20];
+	int ret;
 
-	//thread
-	pthread_t writers[NUM_READ_T];
-	pthread_t readers[NUM_WRIT_T];
+	//snprintf(filename, 19, "/dev/i2c-%d", ADAPT_NUMB); 
 
 	fd1 = open("/dev/i2c_flash", O_RDWR);
 	if (fd1 < 0) {
@@ -89,17 +51,97 @@ int main(int argc, char **argv) {
 		exit(1);
 	}
 
-	for (i = 0; i < NUM_WRIT_T; i++) {
-		pthread_create(&writers[i], NULL, write_request, (void *) i);
-	}
+	//do some reading or writing
+	do {
+		printf("\n1.Read\n2.Write\n3.Set\n4.Quit\n");
+		scanf("%d", &uInput);
+		//fgets(inp, sizeof(inp), stdin);
+		//sscanf(inp, "%d", &uInput);
 
-	for (i = 0; i < NUM_READ_T; i++) {
-		pthread_create(&readers[i], NULL, read_request, (void *) i);
-	}
-
-	pthread_join(readers, NULL);
-	pthread_join(writers, NULL);
-
+		switch(uInput) {
+			case 1 	:
+				printf("\nRead Statement\n");
+				printf("\nHow many pages to read?\n");
+				scanf("%d", &pageRWS);
+				//fgets(inp, sizeof(inp), stdin);
+				//sscanf(inp, "%d", &pageRWS);
+				buf = malloc(sizeof(char) * 64 * pageRWS);
+				memset(buf, 0, sizeof(char) * 64 * pageRWS);
+				do {
+					ret = read(fd1,buf, pageRWS);
+					printf("\nRet [%d]\n", ret);
+					if (errno == 2) {
+						printf("\n Errno [%d]\n", errno);
+						ret = -errno;
+					}
+					switch (ret) {
+						case -2 :
+							printf("\nRequest stored in token!\n");
+							break;
+						case -1 :
+							printf("\nEEPROM is busy!\n");
+							break;
+						case 0 :
+							//do nothing, buffer has been read
+							break;
+					}
+				usleep(1000);
+				} while (ret < 0);
+				printf("\nPrinting buffer\n");
+				printBuf(buf, PAGE_BYTES * pageRWS, PAGE_BYTES);
+				printf("\nDone printing buffer. Freeing memory\n");
+				free(buf);
+				printf("\nDone freeing memory\n");
+				break;
+			case 2	:
+				printf("\nWrite Statement\n");
+				printf("\nHow many pages to write?\n");
+				scanf("%d", &pageRWS);
+				//fgets(inp, sizeof(inp), stdin);
+				//sscanf(inp, "%d", &pageRWS);
+				buf = malloc((sizeof(char) * 64 * pageRWS));
+				memset(buf, 0, sizeof(char) * 64 * pageRWS);
+				scanf("%s", buf);
+				//fgets(buf, sizeof(char) * PAGE_BYTES * pageRWS, stdin);
+				do {
+					ret = write(fd1, buf, pageRWS);
+					printf("\nBack in user space\n");
+					if (errno == 2) {
+						printf("\n Errno [%d]\n", errno);
+						ret = -errno;
+					}
+					switch (ret) {
+						case -2 :
+							printf("\nRequest stored in token!\n");
+							break;
+						case -1 :
+							printf("\nEEPROM is busy!\n");
+							break;
+						case 0 :
+							printf("\nDone writing!\n");
+							//do nothing, buffer has been read
+							break;
+					}
+				//usleep(3000);
+				} while (ret < 0);
+				free(buf);
+				break;
+			case 3	:
+				printf("\nSet Statement\n");
+				printf("\nNew device offset?\n");
+				scanf("%d", &pageRWS);
+				//fgets(inp, sizeof(inp), stdin);
+				//sscanf(inp, "%d", &pageRWS);
+				if(!lseek(fd1, pageRWS, 0)) printf("\nSomething happened when setting!\n");
+				break;
+			case 4 	:
+				printf("\nQuit\n");
+				break;
+			default:
+				printf("\nUnknown Command\n");
+				break;
+		}
+	} while (uInput != 4);
 	close(fd1);
 	return 0;
 }

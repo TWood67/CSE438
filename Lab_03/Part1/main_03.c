@@ -72,15 +72,13 @@ int main(int argc, char **argv) {
 	//do some reading or writing
 	do {
 		printf("\n1.Read\n2.Write\n3.Set\n4.Quit\n");
-		fgets(inp, sizeof(inp), stdin);
-		sscanf(inp, "%d", &uInput);
+		scanf("%d", &uInput);
 
 		switch(uInput) {
 			case 1 	:
 				printf("\nRead Statement\n");
 				printf("\nHow many pages to read?\n");
-				fgets(inp, sizeof(inp), stdin);
-				sscanf(inp, "%d", &pageRWS);
+				scanf("%d", &pageRWS);
 				buf = malloc(sizeof(char) * PAGE_BYTES * pageRWS);
 				memset(buf, 0, sizeof(char) * 64 * pageRWS);
 				read_EEPROM(buf, pageRWS);
@@ -90,20 +88,18 @@ int main(int argc, char **argv) {
 			case 2	:
 				printf("\nWrite Statement\n");
 				printf("\nHow many pages to write?\n");
-				fgets(inp, sizeof(inp), stdin);
-				sscanf(inp, "%d", &pageRWS);
+				scanf("%d", &pageRWS);
 				buf = malloc((sizeof(char) * PAGE_BYTES * pageRWS));
 				memset(buf, 0, sizeof(char) * 64 * pageRWS);
 				printf("\nData to write:\n");
-				fgets(buf, sizeof(char) * PAGE_BYTES * pageRWS, stdin);
+				scanf("%s", buf);
 				write_EEPROM(buf, pageRWS);
 				free(buf);
 				break;
 			case 3	:
 				printf("\nSet Statement\n");
 				printf("\nNew device offset?\n");
-				fgets(inp, sizeof(inp), stdin);
-				sscanf(inp, "%d", &pageRWS);
+				scanf("%d", &pageRWS);
 				seek_EEPROM(pageRWS);
 				break;
 			case 4 	:

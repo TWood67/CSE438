@@ -3,7 +3,7 @@
  * Created By: Taylor Wood
  * ASU ID: 1202553801
  * Class: CSE 438
- * Assignment: 3 - 2
+ * Assignment: 3 - 3
  ***********************************************************/
 
 #include "i2c_flash.h"
@@ -11,9 +11,7 @@
 
 static int i2c_flash_open(struct inode *inode, struct file *file)
 {
-	struct i2c_client *client;
-	struct i2c_adapter *adap;
-
+	adap = kmalloc(sizeof(struct i2c_adapter), GFP_KERNEL);
 	adap = i2c_get_adapter(ADAPT_NUMBR);
 	if (!adap)
 		return -ENODEV;
@@ -36,7 +34,7 @@ static int i2c_flash_open(struct inode *inode, struct file *file)
 	//set the slave addr
 
 	client->addr = SLAVE_ADDRE;
-	file->private_data = client;
+	//file->private_data = client;
 
 	printk("\n%s opening\n", DEVICE_NAME);
 
@@ -45,35 +43,78 @@ static int i2c_flash_open(struct inode *inode, struct file *file)
 
 static int i2c_flash_release(struct inode *inode, struct file *file)
 {
-	struct i2c_client *client = file->private_data;
 
-	i2c_put_adapter(client->adapter);
-	kfree(client);
-	file->private_data = NULL;
+	if (client->adapter) i2c_put_adapter(client->adapter);
+	if (client) kfree(client);
 
 	return 0;
 }
 
 static ssize_t i2c_flash_read(struct file *file, char __user *buf, size_t count, loff_t *offset)
 {
-	char *tmp = kmalloc(PAGE_BYTES * count, GFP_KERNEL);
+	int ret;
+
+	printk("\nEntering the read!\n");
+	
+	switch (i2c_flash_queue_status) {
+		//Queue is empty
+		case 0x00:
+			i2c_flash_queue_status = 0x01;
+			printk("\nThe Queue is empty!\n");
+			i2c_flash_page_count = count;
+			i2c_flash_rbuf = kmalloc(PAGE_BYTES * i2c_flash_page_count, GFP_KERNEL);
+			memset(i2c_flash_rbuf, 0, PAGE_BYTES * i2c_flash_page_count);
+			printk("\nGlobal variables have been set and preparing to queue the work!\n");
+			//queue the work
+			INIT_WORK(&work_read, (void *)__i2c_flash_read);
+			ret =queue_work(i2c_flash_wqp->wq, &work_read);		
+			printk("\nThe value of ret is [%d]\n", ret);	
+			if (ret != 0) {	
+				printk("\nWork has been queued and the status updated!\n");				
+				return -2;
+			}
+			else
+				return ret;
+			break;
+		//EEPROM is busy
+		case 0x01:	
+			printk("\nEEPROM is busy\n");
+			return -1;
+			break;
+		//work is done reading from the EEPROM.
+		//copy buffer to user space
+		case 0x02:
+			printk("\nCopying data to user!\n");
+			ret = copy_to_user(buf, i2c_flash_rbuf, i2c_flash_page_count * PAGE_BYTES);
+			goto exit;
+			//if (ret != 0) return -3;	//error 3 indicates something went wrong
+			break;
+	}
+
+exit: 
+	printk("\nIn the read exit. Queue status is [%d]\n", i2c_flash_queue_status);
+	i2c_flash_queue_status = 0x00;
+	printk("\nIn the read exit. Queue status is now [%d]\n", i2c_flash_queue_status);
+	//uninitialize all variables
+	printk("\nFreeing the i2c_flash_rbuf\n");
+	if (i2c_flash_rbuf) kfree(i2c_flash_rbuf);
+	printk("\nDone freeing the i2c_flash_rbuf\n");
+	i2c_flash_page_count = 0;
+
+	return 0;
+}
+
+static void __i2c_flash_read(void) {
+
 	int ret = 0;
 	int i = 0;
 	int address;
 	char *asBuf = kmalloc(2, GFP_KERNEL);
+	char *tbuf = kmalloc(i2c_flash_page_count * PAGE_BYTES, GFP_KERNEL);
 
-	struct i2c_client *client = file->private_data;
+	for (i = 0; i < i2c_flash_page_count; i++) {
 
-	if (tmp == NULL)
-		return -ENOMEM;
-
-	//acquire semaphore
-	if (down_interruptible(sem)) return -ERESTARTSYS;
-
-	for (i = 0; i < count; i++) {
-
-		//for testing semaphore lock
-		//msleep(5000);
+		printk("\nEntering i2c_read\n");
 
 		//Addres Low
 		address = (currPage & 0x00ff);
@@ -85,54 +126,104 @@ static ssize_t i2c_flash_read(struct file *file, char __user *buf, size_t count,
 		
 		//set the page to the correct spot for a read
 		//i2c_flash_lseek(file, currPage / PAGE_BYTES, 0);
+		printk("\nSending address to master on loop [%d]\n", i);
 		ret = i2c_master_send(client, asBuf, 2);
+
+		
 		if (ret < 0) {
 			printk("\nSomething happened when setting the address for read!\n");
-			return -1;
+			i2c_flash_eread = -1;
 		}
-		
 
-		pr_debug("i2c-dev: i2c-%d reading %zu bytes.\n",
-			iminor(file->f_path.dentry->d_inode), i * PAGE_BYTES);
-
-		ret = i2c_master_recv(client, tmp + (i * PAGE_BYTES), PAGE_BYTES);
+		printk("\nReading on loop [%d]\n", i);
+		ret = i2c_master_recv(client, tbuf + (i * PAGE_BYTES), PAGE_BYTES);
 
 		set_offset((currPage / PAGE_BYTES) + 1);
 	}
 
-	ret = copy_to_user(buf, tmp, count * PAGE_BYTES) ? -EFAULT : ret;
+	printk("\nExiting read and copying memory\n");
+	memcpy(i2c_flash_rbuf, tbuf, i2c_flash_page_count * PAGE_BYTES);
 
-	//release semaphore
-	up(sem);
+	if (tbuf) kfree(tbuf);
+	if (asBuf) kfree(asBuf);
 	
-	kfree(tmp);
-	return ret;
+
+	i2c_flash_queue_status = 0x02;
+
 }
 
-static ssize_t i2c_flash_write(struct file *file, const char __user *buf, size_t count, loff_t *offset)
+static ssize_t i2c_flash_write(struct file *file, const char __user *buf, size_t count, loff_t *offset) {
+
+	int ret;
+
+	printk("\nEntering the write!\n");
+	switch (i2c_flash_queue_status) {
+
+		//Queue is empty
+		case 0x00:
+			i2c_flash_queue_status = 0x01;
+			printk("\nThe page is empty!\n");
+			i2c_flash_page_count = count;
+			i2c_flash_wbuf = kmalloc(PAGE_BYTES * i2c_flash_page_count, GFP_KERNEL);
+			ret = copy_from_user(i2c_flash_wbuf, buf, PAGE_BYTES * i2c_flash_page_count);
+			printk("\nGlobal variables have been set!\n");
+			//if (ret != 0) {
+			//	return -3; //return something happened
+			//}
+			//allocate memory for the work
+			//work_write = kmalloc(sizeof(struct work_struct), GFP_KERNEL);
+			//queue the work	
+			printk("\nInitializing work thread!\n");
+			INIT_WORK(&work_write, (void *)__i2c_flash_write);
+			printk("\nQueuing the work!\n");
+			ret = queue_work(i2c_flash_wqp->wq, &work_write);
+			printk("\nWork queued!\n");	
+			if (ret != 0) {		
+				printk("\nReturn -2\n");			
+				return -2;
+			}
+			else {
+				printk("\nReturning ret\n");
+				return ret;
+			}
+			printk("\nBreaking\n");
+			break;
+		//EEPROM is busy
+		case 0x01:	
+			printk("\nEEPROM is busy!\n");
+			return -1;
+			break;
+		//work is done writing to the EEPROM
+		case 0x02:
+			printk("\nDone working!\n");
+			goto exit;
+			break;
+	}
+exit:
+	printk("\nIn the write exit. Queue status is [%d]\n", i2c_flash_queue_status);
+	i2c_flash_queue_status = 0x00;
+	printk("\nIn the write exit. Queue status is now [%d]\n", i2c_flash_queue_status);
+	//uninitialize all variables
+	if (i2c_flash_wbuf) kfree(i2c_flash_wbuf);
+	i2c_flash_page_count = 0;
+
+	return 0;
+}
+
+static void __i2c_flash_write(void)
 {
-	int ret = 0;
+	int ret;
 	char *tmp = kmalloc(PAGE_BYTES + 2, GFP_KERNEL);
 	int address;
-	struct i2c_client *client = file->private_data;
 	int i = 0;
 
-	//acquire semaphore
-	if (down_interruptible(sem)) return -ERESTARTSYS;
-
-	for (i = 0; i < count; i++) {
+	printk("\n__i2c_flash_write entered\n");
+	for (i = 0; i < i2c_flash_page_count; i++) {
 		
 		//verify all the bits were copied
-		if (copy_from_user(tmp + 2, buf + (i * PAGE_BYTES), PAGE_BYTES)) {
-			kfree(tmp);
-			printk("\nSomething happened when copying data from the user!\n");
-		return -1;
-		}
-		if (IS_ERR(tmp))
-			return PTR_ERR(tmp);
-
-		pr_debug("i2c-dev: i2c-%d writing %zu bytes.\n",
-			iminor(file->f_path.dentry->d_inode), count);
+		printk("\nCopying buffer from user!\n");
+		ret = copy_from_user(tmp + 2, i2c_flash_wbuf + (i * PAGE_BYTES), PAGE_BYTES);
+		printk("\nDone copying buffer from user!\n");
 
 		//get the write address
 		//Address high
@@ -144,36 +235,26 @@ static ssize_t i2c_flash_write(struct file *file, const char __user *buf, size_t
 		memcpy(tmp + 1, &address, 1);
 		
 		//write to EEPROM
+		printk("\nWriting to EEPROM.\n");
 		ret = i2c_master_send(client, tmp, PAGE_BYTES + 2);
-
-		if (ret < 0) {
-			//failure
-			printk("\nSomething happened when writing!\n");
-			kfree(tmp);
-			return -1;
-		}
+		printk("\nDone writing to EEPROM.\n");
 
 		//increment the page offset
 		set_offset((currPage / PAGE_BYTES) + 1);
 	}
 
-	//release semaphore
-	up(sem);
-
-	kfree(tmp);
-	return ret;
+	printk("\nExiting write\n");
+	if (tmp) kfree(tmp);
+	
+	i2c_flash_queue_status = 0x02;
 }
 
 loff_t i2c_flash_lseek(struct file *file, loff_t offset, int whence) {
 	
-	struct i2c_client *client = file->private_data;
 	char *asBuf = kmalloc(2, GFP_KERNEL);
 	int address;
 	int res;
 
-	//get the semaphore here, we don't want the offset
-	//changed while something is trying to write
-	if (down_interruptible(sem)) return -ERESTARTSYS;
 	set_offset(offset);
 
 	//Addres Low
@@ -188,14 +269,12 @@ loff_t i2c_flash_lseek(struct file *file, loff_t offset, int whence) {
 
 	res = i2c_master_send(client, asBuf, 2);
 
-	up(sem);
-
 	if (res < 0) {
 		printk("\nWriting the address failed!\n");
 		return -1;
 	}
 
-	kfree(asBuf);
+	if (asBuf) kfree(asBuf);
 
 	return res;
 }
@@ -255,9 +334,23 @@ static int __init i2c_flash_dev_init(void)
 	//instantiate current page to 0
 	currPage = 0;
 
-	//allocate memory and initialize the semaphore
-	sem = kmalloc(sizeof(struct semaphore), GFP_KERNEL);
-	sema_init(sem, 1);
+	//need to initialize the work queue
+	i2c_flash_wqp = kmalloc(sizeof(struct i2c_flash_wq), GFP_KERNEL);
+	i2c_flash_wqp->wq = create_singlethread_workqueue(WQUEUE_NAME);
+	i2c_flash_wqp->size = 0;
+
+	i2c_flash_queue_status = 0;
+	i2c_flash_page_count = 0;
+
+	i2c_flash_rbuf = NULL;
+	i2c_flash_wbuf = NULL;	//buffers for read and write
+	client = NULL;
+	adap = NULL;
+
+	printk("\nInitializing work_write!\n");
+	INIT_WORK(&work_write, NULL);
+	printk("\nInitializing work_read!\n");
+	INIT_WORK(&work_read, NULL);
 
 	printk("%s initialized.\n", DEVICE_NAME);
 
@@ -281,8 +374,10 @@ static void __exit i2c_flash_dev_exit(void)
 	//Destroy driver_class
 	class_destroy(i2c_flash_dev_class);
 
-	//free the allocated space for the semaphore
-	kfree(sem);
+	//flush the workqueue and destroy the queue
+	flush_workqueue(i2c_flash_wqp->wq);
+	destroy_workqueue(i2c_flash_wqp->wq);
+	kfree(i2c_flash_wqp);
 
 	printk("%s removed.\n", DEVICE_NAME);
 
