@@ -7,7 +7,7 @@ PWD:= $(shell pwd)
 APP = Task2
 
 default:
-	arm-angstrom-linux-gnueabi-gcc -g main.c -o $(APP) -lpthread
+	arm-angstrom-linux-gnueabi-gcc -g main.c -o $(APP) -lpthread -lm
 
 clean:
 	rm -f *.ko
