@@ -16,6 +16,7 @@
 #include <linux/input.h>
 
 int bCalcPi = 1;	//global to determine pi calc iterations
+int rightClick = 0;
 
 #define MOUSEFILE	"/dev/input/event3"
 
@@ -40,7 +41,7 @@ void* calculate_pi(void *arg) {
 
 	} while (bCalcPi);
 
-	printf("\nAfter one second Pi was calculated to be [%f]\n", 4 * val);
+	printf("\nPi was calculated to be [%f]\n", 4 * val);
 
 }
 
@@ -61,6 +62,14 @@ int main(int argc, char **argv) {
 
 	int fd;
 	struct input_event ie;
+	pthread_t pi_calc;
+
+	if (signal(SIGINT, signal_handler) == SIG_ERR) {
+		printf("\nSomething happened while setting a signal handler.\n");
+		return -1;
+	}
+
+	pthread_create(&pi_calc, NULL, calculate_pi, 0);
 
 	if ((fd = open(MOUSEFILE, O_RDONLY)) == -1) {
 		perror("\nopening device\n");
@@ -70,7 +79,20 @@ int main(int argc, char **argv) {
 	while (read(fd, &ie, sizeof(struct input_event))) {
 		printf("time %ld.%06ld\ttype %d\tcode %d\tvalue %d\n",
 		       ie.time.tv_sec, ie.time.tv_usec, ie.type, ie.code, ie.value);
+		if (ie.code == 273 && ie.value == 1) rightClick++;
+		if (rightClick == 2) {
+			if (raise(SIGINT) != 0) {
+				printf("\nError raising the signal.\n");
+				return -1;
+			}
+		goto END;
+		}
 	}
+
+END:
+	pthread_join(pi_calc, NULL);
+
+	close(fd);
 
 	return 0;
 
