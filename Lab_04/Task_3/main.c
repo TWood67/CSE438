@@ -18,7 +18,7 @@
 int bCalcPi = 1;	//global to determine pi calc iterations
 int rightClick = 0;
 
-#define MOUSEFILE	"/dev/input/event3"
+#define MOUSEFILE	"/dev/input/event1"
 
 /*
  * Calculate Pi
@@ -79,7 +79,8 @@ int main(int argc, char **argv) {
 	while (read(fd, &ie, sizeof(struct input_event))) {
 		printf("time %ld.%06ld\ttype %d\tcode %d\tvalue %d\n",
 		       ie.time.tv_sec, ie.time.tv_usec, ie.type, ie.code, ie.value);
-		if (ie.code == 273 && ie.value == 1) rightClick++;
+
+		if (ie.code == BTN_RIGHT && ie.value == 1) rightClick++;
 		if (rightClick == 2) {
 			if (raise(SIGINT) != 0) {
 				printf("\nError raising the signal.\n");
