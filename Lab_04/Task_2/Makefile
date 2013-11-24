@@ -4,7 +4,7 @@ obj-m:= HRTDriver.o Squeue.o
 KDIR:= ~/kernel ~/kernel/arch/arm/plat-omap 
 PWD:= $(shell pwd)
 
-APP = Task2
+APP = Task_2
 
 default:
 	arm-angstrom-linux-gnueabi-gcc -g main.c -o $(APP) -lpthread -lm

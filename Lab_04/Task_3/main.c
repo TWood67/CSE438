@@ -16,7 +16,6 @@
 #include <linux/input.h>
 
 int bCalcPi = 1;	//global to determine pi calc iterations
-int rightClick = 0;
 
 #define MOUSEFILE	"/dev/input/event1"
 
@@ -63,6 +62,9 @@ int main(int argc, char **argv) {
 	int fd;
 	struct input_event ie;
 	pthread_t pi_calc;
+	struct timeval tv_last = {0, 0};
+	int time_out = 500000;
+	int time_diff = 0;
 
 	if (signal(SIGINT, signal_handler) == SIG_ERR) {
 		printf("\nSomething happened while setting a signal handler.\n");
@@ -76,53 +78,31 @@ int main(int argc, char **argv) {
 		exit(EXIT_FAILURE);
 	}
 
-	while (read(fd, &ie, sizeof(struct input_event))) {
-		printf("time %ld.%06ld\ttype %d\tcode %d\tvalue %d\n",
-		       ie.time.tv_sec, ie.time.tv_usec, ie.type, ie.code, ie.value);
-
-		if (ie.code == BTN_RIGHT && ie.value == 1) rightClick++;
-		if (rightClick == 2) {
-			if (raise(SIGINT) != 0) {
-				printf("\nError raising the signal.\n");
-				return -1;
+	while (read(fd, &ie, sizeof(struct input_event)) && bCalcPi) {
+	
+		if (ie.type == EV_KEY && ie.code == BTN_RIGHT && ie.value == 1) {
+			time_diff = ie.time.tv_sec - tv_last.tv_sec;
+			if (time_diff >= 0 && time_diff < 1) {
+				time_diff *= 1000000;
+				time_diff += ie.time.tv_usec;
+				time_diff -= tv_last.tv_usec;
 			}
-		goto END;
+			else time_diff = time_out + 1;
+
+			if (time_diff <= time_out) {
+				
+				if (raise(SIGINT) != 0) {
+					printf("\nError raising the signal.\n");
+				}
+			}
+
+			tv_last.tv_sec = ie.time.tv_sec;
+			tv_last.tv_usec = ie.time.tv_usec;
 		}
 	}
 
-END:
-	pthread_join(pi_calc, NULL);
-
+	usleep(1000);
 	close(fd);
 
 	return 0;
-
-	/*
-
-	//create thread object
-	pthread_t pi_calc;
-
-	//Set the signal handler
-	if (signal(SIGINT, signal_handler) == SIG_ERR) {
-		printf("\nSomething happened while setting a signal handler.\n");
-		return -1;
-	}
-	
-	printf("\nCalculating Pi for one second.\n");
-	pthread_create(&pi_calc, NULL, calculate_pi, 0);
-
-	//sleep for one second
-	usleep(1000000);
-
-	//raise the signal
-	printf("\nRaising the interactive attention singal.\n");
-	if (raise(SIGINT) != 0) {
-		printf("\nError raising the signal.\n");
-		return -1;
-	}
-
-	pthread_join(pi_calc, NULL);
-	
-	return 0;
-	*/
 }
