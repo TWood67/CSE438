@@ -69,7 +69,8 @@ volatile unsigned long ulCriticalNesting = 9999UL;
 /*-----------------------------------------------------------*/
 
 /* ISR handler to decide which function to call based on incoming interrupt */
-extern void vUART_ISR_Wrapper( void );
+extern void vUART_ISR_Handler( void );
+extern void vTaskIncrementTick( void );
 
 void vTickISR ( void ) __attribute__((naked));
 void vIRQHandler ( void )__attribute__((naked));
@@ -105,12 +106,10 @@ void vIRQHandler ( void ){
 	}
 
 	//Malik: I deleted serial code, so commented
-#if 0
 	else if((*(REG32(MPU_INTC + INTCPS_SIR_IRQ)))==74)
 	{
-		__asm volatile ("bl vUART_ISR_Handler");
+		vUART_ISR_Handler();//__asm volatile ("bl vUART_ISR_Handler");
 	}
-#endif
 
 //	serial_puts("Exiting IRQ...\n");
 
@@ -143,6 +142,7 @@ void vPortYieldProcessor( void )
 	/* Restore the context of the new task. */
 	portRESTORE_CONTEXT();	
 }
+
 /*-----------------------------------------------------------*/
 /* 
  * The ISR used for the scheduler tick.

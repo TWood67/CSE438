@@ -63,6 +63,7 @@
 
 /* Standard includes. */
 #include <stdlib.h>
+#include <bbconsole.h>
 
 /* Scheduler includes. */
 #include "FreeRTOS.h"
@@ -77,10 +78,10 @@
 
 /*-----------------------------------------------------------*/
 /* Helper functions */
-extern void RegWrite( unsigned int base, unsigned int offset, unsigned int value);
-extern void dumpinterrupts( void );
-extern void dumptimer( void );
-extern unsigned int RegRead( unsigned int base, unsigned int offset);
+//extern void RegWrite( unsigned int base, unsigned int offset, unsigned int value);
+//extern void dumpinterrupts( void );
+//extern void dumptimer( void );
+//extern unsigned int RegRead( unsigned int base, unsigned int offset);
 
 /*-----------------------------------------------------------*/
 
@@ -178,12 +179,12 @@ portSTACK_TYPE *pxOriginalTOS;
 
 portBASE_TYPE xPortStartScheduler( void )
 {
-	serial_puts("xPortStartScheduler: setup timer.\n");
+	vSerialPutString("xPortStartScheduler: setup timer.\n");
 	/* Start the timer that generates the tick ISR.  Interrupts are disabled
 	here already. */
 	prvSetupTimerInterrupt();
 
-	serial_puts("xPortStartScheduler: start first task.\n");
+	vSerialPutString("xPortStartScheduler: start first task.\n");
 	/* Start the first task. */
 	vPortISRStartFirstTask();	
 

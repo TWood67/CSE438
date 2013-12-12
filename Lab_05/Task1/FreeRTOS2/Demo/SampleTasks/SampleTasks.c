@@ -96,11 +96,11 @@ void HelloWorld1(void * pvParameters);
 void HelloWorld2(void * pvParameters);
 void FlashLED1(void * pvParameters);
 void FlashLED2(void * pvParameters);
-void CreateHWSemaphore(void);
+//void CreateHWSemaphore(void);
 
 #define WITH_SEMAPHORE 0
 #define WIH_CRITICAL   1
-# define MY_DELAY_TIME 250
+#define MY_DELAY_TIME 250
 
 #if WITH_SEMAPHORE
 
@@ -110,15 +110,16 @@ void CreateHWSemaphore(void);
 
 portTASK_FUNCTION( HelloWorld1, pvParameters )
 {
-	pvParameters = 0;
-	int i = 0;
+
+	(void) pvParameters;
+
 	portTickType xLastWakeTime;
 	xLastWakeTime = xTaskGetTickCount();
 
 	while(1)
 	{
 			portENTER_CRITICAL();
-			printf("Hello world 1 \n");
+			printk("\nHello world 1 \n");
 			portEXIT_CRITICAL();
 			vTaskDelayUntil( &xLastWakeTime, ( MY_DELAY_TIME / portTICK_RATE_MS ) );
 	}
@@ -126,8 +127,8 @@ portTASK_FUNCTION( HelloWorld1, pvParameters )
 
 portTASK_FUNCTION( HelloWorld2, pvParameters )
 {
-	pvParameters = 0;
-	int i = 0;
+	(void) pvParameters;
+
 	portTickType xLastWakeTime;
 		xLastWakeTime = xTaskGetTickCount();
 
@@ -135,7 +136,7 @@ portTASK_FUNCTION( HelloWorld2, pvParameters )
 	{
 			portENTER_CRITICAL();
 			vTaskDelay( 500 / portTICK_RATE_MS );
-			printf("vTaskDelay Hello world 2 \n");
+			printk("\nvTaskDelay Hello world 2 \n");
 			portEXIT_CRITICAL();
 			vTaskDelayUntil( &xLastWakeTime, ( MY_DELAY_TIME / portTICK_RATE_MS ) );
 	}
@@ -190,7 +191,9 @@ static void vParTestSetLED( unsigned portBASE_TYPE uxLED, signed portBASE_TYPE x
 
 portTASK_FUNCTION(FlashLED1, pvParameters)
 {
-	pvParameters = 0;
+
+	(void) pvParameters;
+
 	portTickType xLastWakeTime;
 		xLastWakeTime = xTaskGetTickCount();
 
@@ -208,7 +211,8 @@ portTASK_FUNCTION(FlashLED1, pvParameters)
 
 portTASK_FUNCTION(FlashLED2, pvParameters)
 {
-	pvParameters = 0;
+	(void) pvParameters;
+
 	portTickType xLastWakeTime;
 		xLastWakeTime = xTaskGetTickCount();
 

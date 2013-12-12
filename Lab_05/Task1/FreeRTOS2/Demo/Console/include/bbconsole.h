@@ -27,12 +27,28 @@
 #ifndef __BBCONSOLE_H_
 #define __BBCONSOLE_H_			1
 
-#define CFG_PRINTF
+#define CFG_PRINTK
 
 #define DM3730_L4_PERIPHERAL	0x49000000
 #define OMAP34XX_UART3			(DM3730_L4_PERIPHERAL+0x20000)
 
-#ifdef CFG_PRINTF
+#ifdef CFG_PRINTK
+
+#define KERN_SOH        "\001"          /* ASCII Start Of Header */
+#define KERN_SOH_ASCII  '\001'
+
+#define KERN_EMERG      KERN_SOH ""     /* system is unusable */
+#define KERN_ALERT      KERN_SOH "1"    /* action must be taken immediately */
+#define KERN_CRIT       KERN_SOH "2"    /* critical conditions */
+#define KERN_ERR        KERN_SOH "3"    /* error conditions */
+#define KERN_WARNING    KERN_SOH "4"    /* warning conditions */
+#define KERN_NOTICE     KERN_SOH "5"    /* normal but significant condition */
+#define KERN_INFO       KERN_SOH "6"    /* informational */
+#define KERN_DEBUG      KERN_SOH "7"    /* debug-level messages */
+
+//TODO talk about this section for readme
+#define configKERNLOGLEVEL		'7'
+#define configPRINTKBUFSIZE		5000
 
 #define CFG_NS16550
 #define CFG_NS16550_SERIAL
@@ -46,22 +62,22 @@
 #define CONFIG_BAUDRATE			115200
 #define CFG_PBSIZE				256
 
-#define printf(fmt,args...)	serial_printf (fmt ,##args)
-#define getc() serial_getc()
-int	 serial_init(void);
-void serial_setbrg(void);
-void serial_putc(const char);
-void serial_puts(const char *);
-int	 serial_getc(void);
-int	 serial_tstc(void);
+#define printk(fmt,args...)	serial_printk (fmt ,##args)
+
+void vSerialPortInit( void );
+void vSerialPutString( const char * const pcString );
+signed long xSerialGetChar( signed char *pcRxedChar, long xBlockTime );
+signed long xSerialPutChar( signed char cOutChar, long xBlockTime );
+
 void serial_printf (const char *fmt, ...);
+void serial_printk (const char *fmt, ...);
 
 void memdump_32(void *mem, int size);
 
 #else /* CFG_PRINTF */
 
-#define printf(fmt,args...)
-#define getc() ' '
+#define printk(fmt,args...)
+//#define getc() ' '
 
 #endif	/* CFG_PRINTF */
 

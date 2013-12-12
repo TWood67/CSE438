@@ -84,6 +84,15 @@ typedef volatile struct NS16550 *NS16550_t;
 #define FCR_RXSR        0x02		/* Receiver soft reset */
 #define FCR_TXSR        0x04		/* Transmitter soft reset */
 
+#define IER_RHR_IT			0x01
+#define IER_THR_IT 			0x02
+#define IER_LINE_STS_IT 	0x04
+#define IER_MODEM_STS_IT	0x08
+#define IER_SLEEP_MODE		0x10
+#define IER_XOFF_IT			0x20
+#define IER_RTS_IT			0x40
+#define IER_CTS_IT			0x80
+
 #define MCR_DTR         0x01
 #define MCR_RTS         0x02
 #define MCR_DMA_EN      0x04
@@ -113,8 +122,17 @@ typedef volatile struct NS16550 *NS16550_t;
 /* useful defaults for LCR */
 #define LCR_8N1			0x03
 
-void NS16550_init(NS16550_t com_port, int baud_divisor);
-void NS16550_putc(NS16550_t com_port, char c);
-char NS16550_getc(NS16550_t com_port);
-int	 NS16550_tstc(NS16550_t com_port);
-void NS16550_reinit(NS16550_t com_port, int baud_divisor);
+/* The Console */
+#if CONFIG_CONS_INDEX == 1
+static NS16550_t xConsole = (NS16550_t) CFG_NS16550_COM1;
+#elif CONFIG_CONS_INDEX == 2
+static NS16550_t xConsole = (NS16550_t) CFG_NS16550_COM2;
+#elif CONFIG_CONS_INDEX == 3
+static NS16550_t xConsole = (NS16550_t) CFG_NS16550_COM3;
+#elif CONFIG_CONS_INDEX == 4
+static NS16550_t xConsole = (NS16550_t) CFG_NS16550_COM4;
+#else
+#error no valid console defined
+#endif
+
+

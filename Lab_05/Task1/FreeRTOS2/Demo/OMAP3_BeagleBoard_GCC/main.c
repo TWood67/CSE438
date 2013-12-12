@@ -89,6 +89,7 @@
 #include <string.h>
 
 /* Scheduler includes. */
+#include "FreeRTOSConfig.h"
 #include "FreeRTOS.h"
 #include "task.h"
 #include "timers.h"
@@ -159,13 +160,10 @@ static void prvSetupHardware( void );
  * See the top of vErrorChecks for more details
  */
 //static void vMemCheckTask( void *pvParameters );
-
 void HelloWorld1(void * pvParameters);
 void HelloWorld2(void * pvParameters);
 void FlashLED1(void * pvParameters);
 void FlashLED2(void * pvParameters);
-
-/*-----------------------------------------------------------*/
 
 /*
  * Starts all the other tasks, then starts the scheduler. 
@@ -178,19 +176,14 @@ int main( void )
 	/* Setup the hardware for use with the Beableboard. */
 	prvSetupHardware();
 
-
-	memdump_32(0x4020ffc0, 64);
-
-	printf("\nIn Main, please press a key\n");
-	c = getc();
-	printf("Your input %c\n", c);
+	printk(KERN_DEBUG "\nYour input %c\n", c);
 
 	xTaskCreate(HelloWorld1, ( signed char * ) "HelloWorld1",
 				configMINIMAL_STACK_SIZE, (void *) NULL, 1, &hdl);
 
 	if(hdl == 0)
 	{
-		printf("Hello world 1 creation failed");
+		printk("Hello world 1 creation failed");
 	}
 
 	xTaskCreate(HelloWorld2, ( signed char * ) "HelloWorld2",
@@ -198,7 +191,7 @@ int main( void )
 
 	if(hdl == 0)
 	{
-		printf("Hello world 2 creation failed");
+		printk("Hello world 2 creation failed");
 	}
 
 	xTaskCreate(FlashLED1, ( signed char * ) "FlashLED1",
@@ -206,7 +199,7 @@ int main( void )
 
 	if(hdl == 0)
 	{
-		printf("Flash LED 1 creation failed");
+		printk("Flash LED 1 creation failed");
 	}
 
 	xTaskCreate(FlashLED2, ( signed char * ) "FlashLED2",
@@ -214,7 +207,7 @@ int main( void )
 
 	if(hdl == 0)
 	{
-		printf("Flash LED 2 creation failed");
+		printk("Flash LED 2 creation failed");
 	}
 
 	/* Now all the tasks have been stared - start the scheduler.
@@ -225,7 +218,7 @@ int main( void )
 	 * projects then ensure Supervisor mode is used here */
 	/* Should never reach here! */
 
-	printf("Start FreeRTOS ...\n");
+	printk(KERN_DEBUG "Start FreeRTOS ...\n");
 
 	vTaskStartScheduler();
 	return 0;
@@ -243,6 +236,9 @@ static void prvSetupHardware( void )
 
 	/* Switch off the leds */
 	(*(REG32(GPIO5_BASE+GPIO_CLEARDATAOUT))) = PIN22|PIN21;
+
+	/* Init UART */
+	vSerialPortInit();
 }
 
 

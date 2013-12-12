@@ -335,8 +335,8 @@ portTickType xItemValue;																\
 #define prvGetTCBFromHandle( pxHandle ) ( ( ( pxHandle ) == NULL ) ? ( tskTCB * ) pxCurrentTCB : ( tskTCB * ) ( pxHandle ) )
 
 /* Callback function prototypes. --------------------------*/
-extern void vApplicationStackOverflowHook( xTaskHandle *pxTask, signed char *pcTaskName );
-extern void vApplicationTickHook( void );
+//extern void vApplicationStackOverflowHook( xTaskHandle *pxTask, signed char *pcTaskName );
+//extern void vApplicationTickHook( void );
 		
 /* File private functions. --------------------------------*/
 
@@ -1467,8 +1467,6 @@ unsigned portBASE_TYPE uxTaskGetNumberOfTasks( void )
  * SCHEDULER INTERNALS AVAILABLE FOR PORTING PURPOSES
  * documented in task.h
  *----------------------------------------------------------*/
-
-
 void vTaskIncrementTick( void )
 {
 tskTCB * pxTCB;
@@ -2529,5 +2527,8 @@ void vTaskExitCritical( void )
 /*-----------------------------------------------------------*/
 
 
+xTaskCreateRT(pvTaskFunction, pcName, usStackDepth, pvParameters, uxPeriod, pxCreatedTask )
+{
 
+}
 

@@ -76,9 +76,10 @@
 #define configCPU_CLOCK_HZ		( ( unsigned long ) 8000000 )
 #define configTICK_RATE_HZ		( ( portTickType ) 1000 ) 
 #define configMAX_PRIORITIES		( ( unsigned portBASE_TYPE ) 5 )
-#define configMINIMAL_STACK_SIZE	( ( unsigned short ) 128 )
+#define configMINIMAL_STACK_SIZE	( ( unsigned short ) 256 )
 #define configTOTAL_HEAP_SIZE		( ( size_t ) ( 24 * 1024 ) )
 #define configMAX_TASK_NAME_LEN		( 16 )
+#define configREAL_TIME_TASK		1
 #define configUSE_TRACE_FACILITY	0
 #define configUSE_16_BIT_TICKS		0
 #define configIDLE_SHOULD_YIELD		1
@@ -105,7 +106,5 @@ to exclude the API function. */
 #define configTIMER_TASK_PRIORITY		( configMAX_PRIORITIES - 1 )
 #define configTIMER_QUEUE_LENGTH		5
 #define configTIMER_TASK_STACK_DEPTH	( configMINIMAL_STACK_SIZE * 2 )
-
-
 
 #endif /* FREERTOS_CONFIG_H */

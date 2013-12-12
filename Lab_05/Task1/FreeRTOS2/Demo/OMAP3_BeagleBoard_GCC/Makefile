@@ -97,21 +97,24 @@ SAMPLE_TASKS_DIR = ../SampleTasks
 
 THUMB_SRC = \
 main.c \
+$(CONSOLE_SRC_DIR)/serial.c \
+$(CONSOLE_SRC_DIR)/printk.c \
 $(RTOS_SOURCE_DIR)/timers.c \
 $(RTOS_SOURCE_DIR)/tasks.c \
 $(RTOS_SOURCE_DIR)/queue.c \
 $(RTOS_SOURCE_DIR)/list.c \
 $(RTOS_SOURCE_DIR)/portable/MemMang/heap_2.c \
 $(RTOS_SOURCE_DIR)/portable/GCC/OMAP3_BeagleBoard/port.c \
-$(CONSOLE_SRC_DIR)/comport.c \
-$(CONSOLE_SRC_DIR)/ns16550.c \
-$(CONSOLE_SRC_DIR)/printf.c \
 $(SAMPLE_TASKS_DIR)/SampleTasks.c
+#$(CONSOLE_SRC_DIR)/comport.c 
+#$(CONSOLE_SRC_DIR)/ns16550.c 
 
 #
 # Source files that must be built to ARM mode.
 #
-ARM_SRC = $(RTOS_SOURCE_DIR)/portable/GCC/OMAP3_BeagleBoard/portISR.c 
+ARM_SRC = \
+$(RTOS_SOURCE_DIR)/portable/GCC/OMAP3_BeagleBoard/portISR.c \
+$(CONSOLE_SRC_DIR)/serialISR.c
 
 #
 # Define all object files.
@@ -144,14 +147,15 @@ $(ARM_OBJ) : %.o : %.c $(LDSCRIPT) Makefile
 	$(CC) -c $(CFLAGS) -S $< -o $@.S
 
 clean :
-	rm *.bin *.elf *.map *.o *.o.S
-	rm ../Console/*.o
-	rm $(RTOS_SOURCE_DIR)/*.o
-	rm $(RTOS_SOURCE_DIR)/*.S
-	rm $(RTOS_SOURCE_DIR)/portable/GCC/OMAP3_BeagleBoard/*.S
-	rm $(RTOS_SOURCE_DIR)/portable/GCC/OMAP3_BeagleBoard/*.o	
-	rm $(SAMPLE_TASKS_DIR)/*.o
-	rm $(SAMPLE_TASKS_DIR)/*.o.S
-	rm $(RTOS_SOURCE_DIR)/portable/MemMang/*.o
-	rm $(RTOS_SOURCE_DIR)/portable/MemMang/*.S
+	rm -f *.bin *.elf *.map *.o *.o.S
+	rm -f $(CONSOLE_SRC_DIR)/*.o
+	rm -f $(CONSOLE_SRC_DIR)/*.S
+	rm -f $(RTOS_SOURCE_DIR)/*.o
+	rm -f $(RTOS_SOURCE_DIR)/*.S
+	rm -f $(RTOS_SOURCE_DIR)/portable/GCC/OMAP3_BeagleBoard/*.S
+	rm -f $(RTOS_SOURCE_DIR)/portable/GCC/OMAP3_BeagleBoard/*.o	
+	rm -f $(SAMPLE_TASKS_DIR)/*.o
+	rm -f $(SAMPLE_TASKS_DIR)/*.o.S
+	rm -f $(RTOS_SOURCE_DIR)/portable/MemMang/*.o
+	rm -f $(RTOS_SOURCE_DIR)/portable/MemMang/*.S
 	
