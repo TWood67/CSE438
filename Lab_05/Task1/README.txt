@@ -21,3 +21,14 @@ code.
 Both sampletasks.c and main.c were modified to no
 longer user printf, but printk. They run the same
 as the demo, but with printk.
+
+In order to run application, navigate to
+Task1/FreeRTOS2/Demo/OMAP3_BeagleBoard_GCC. In 
+here you will find a file named rtosdemo.bin. 
+Mount your sd card and drag this file onto the
+boot partition, like in the demo. Boot the
+SD card in the beagleboard and run the following
+commands.
+mmc rescan 0
+fatload mmc 0 80300000 rtosdemo.bin
+go 0x80300000

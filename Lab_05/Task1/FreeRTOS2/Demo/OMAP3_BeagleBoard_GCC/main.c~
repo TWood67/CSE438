@@ -237,9 +237,7 @@ static void prvSetupHardware( void )
 	/* Switch off the leds */
 	(*(REG32(GPIO5_BASE+GPIO_CLEARDATAOUT))) = PIN22|PIN21;
 
-
-
-	// UART Init
+	/* Init UART */
 	vSerialPortInit();
 }
 
