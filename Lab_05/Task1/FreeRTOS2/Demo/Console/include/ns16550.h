@@ -124,13 +124,13 @@ typedef volatile struct NS16550 *NS16550_t;
 
 /* The Console */
 #if CONFIG_CONS_INDEX == 1
-static NS16550_t xConsole = (NS16550_t) CFG_NS16550_COM1;
+static NS16550_t NS16550Console = (NS16550_t) CFG_NS16550_COM1;
 #elif CONFIG_CONS_INDEX == 2
-static NS16550_t xConsole = (NS16550_t) CFG_NS16550_COM2;
+static NS16550_t NS16550Console = (NS16550_t) CFG_NS16550_COM2;
 #elif CONFIG_CONS_INDEX == 3
-static NS16550_t xConsole = (NS16550_t) CFG_NS16550_COM3;
+static NS16550_t NS16550Console = (NS16550_t) CFG_NS16550_COM3;
 #elif CONFIG_CONS_INDEX == 4
-static NS16550_t xConsole = (NS16550_t) CFG_NS16550_COM4;
+static NS16550_t NS16550Console = (NS16550_t) CFG_NS16550_COM4;
 #else
 #error no valid console defined
 #endif

@@ -46,10 +46,6 @@
 #define KERN_INFO       KERN_SOH "6"    /* informational */
 #define KERN_DEBUG      KERN_SOH "7"    /* debug-level messages */
 
-//TODO talk about this section for readme
-#define configKERNLOGLEVEL		'7'
-#define configPRINTKBUFSIZE		5000
-
 #define CFG_NS16550
 #define CFG_NS16550_SERIAL
 #define CFG_NS16550_REG_SIZE	-4
@@ -63,6 +59,9 @@
 #define CFG_PBSIZE				256
 
 #define printk(fmt,args...)	serial_printk (fmt ,##args)
+
+#define PRINTKKERNLOG			'7'
+#define PRINTKBUFSIZE			1000
 
 void vSerialPortInit( void );
 void vSerialPutString( const char * const pcString );

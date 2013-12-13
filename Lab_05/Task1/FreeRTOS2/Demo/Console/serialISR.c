@@ -135,7 +135,7 @@ int x = 0;
 signed char cChar;
 portBASE_TYPE xHigherPriorityTaskWoken = pdFALSE;
 
-	if (xConsole->iir & 0x02)
+	if (NS16550Console->iir & 0x02)
 	{
 		/* The interrupt was caused by the THR becoming empty.  Are there any
 		more characters to transmit? */
@@ -143,21 +143,18 @@ portBASE_TYPE xHigherPriorityTaskWoken = pdFALSE;
 		{
 			/* A character was retrieved from the queue so can be sent to the
 			THR now. */
-			xConsole->thr = cChar;
+			NS16550Console->thr = cChar;
 			x++;
-			//AT91C_BASE_US0->US_THR = cChar;
 		}
 			/* Queue empty, nothing to send so turn off the Tx interrupt. */
-			xConsole->ier = xConsole->ier & 0xFD;
-			//AT91C_BASE_US0->US_IDR = US_TXRDY;
+			NS16550Console->ier = NS16550Console->ier & 0xFD;
 
 	}
 
-	if (xConsole->iir & 0x04)
+	if (NS16550Console->iir & 0x04)
 	{
 		/* The interrupt was caused by the receiver getting data. */
-		//cChar = AT91C_BASE_US0->US_RHR;
-		cChar = xConsole->rbr;
+		cChar = NS16550Console->rbr;
 		xQueueSendFromISR(xRxedChars, &cChar, &xHigherPriorityTaskWoken);
 	}
 

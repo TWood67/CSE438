@@ -106,14 +106,11 @@ $(RTOS_SOURCE_DIR)/list.c \
 $(RTOS_SOURCE_DIR)/portable/MemMang/heap_2.c \
 $(RTOS_SOURCE_DIR)/portable/GCC/OMAP3_BeagleBoard/port.c \
 $(SAMPLE_TASKS_DIR)/SampleTasks.c
-#$(CONSOLE_SRC_DIR)/comport.c 
-#$(CONSOLE_SRC_DIR)/ns16550.c 
 
 #
 # Source files that must be built to ARM mode.
 #
-ARM_SRC = \
-$(RTOS_SOURCE_DIR)/portable/GCC/OMAP3_BeagleBoard/portISR.c \
+ARM_SRC = $(RTOS_SOURCE_DIR)/portable/GCC/OMAP3_BeagleBoard/portISR.c \
 $(CONSOLE_SRC_DIR)/serialISR.c
 
 #

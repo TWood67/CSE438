@@ -110,7 +110,7 @@ void vSerialPortInit()
 
 	/* The queues are used in the serial ISR routine, so are created from
 	serialISR.c (which is always compiled to ARM mode. */
-	vSerialISRCreateQueues( configPRINTKBUFSIZE, &xRxedChars, &xCharsForTx );
+	vSerialISRCreateQueues( PRINTKBUFSIZE, &xRxedChars, &xCharsForTx );
 
 	if(
 			( xRxedChars != serINVALID_QUEUE ) &&
@@ -120,72 +120,19 @@ void vSerialPortInit()
 		portENTER_CRITICAL();
 		{
 
-			xConsole->ier = 0x00;
+			NS16550Console->ier = 0x00;
 #ifdef CONFIG_OMAP
-			xConsole->mdr1 = 0x7;   /* mode select reset TL16C750*/
+			NS16550Console->mdr1 = 0x7;   /* mode select reset TL16C750*/
 #endif
-			xConsole->lcr = LCR_BKSE | LCRVAL;
-			xConsole->dll = baud_divisor & 0xff;
-			xConsole->dlm = (baud_divisor >> 8) & 0xff;
-			xConsole->lcr = LCRVAL;
-			xConsole->mcr = MCRVAL;
-			xConsole->fcr = FCRVAL;
+			NS16550Console->lcr = LCR_BKSE | LCRVAL;
+			NS16550Console->dll = baud_divisor & 0xff;
+			NS16550Console->dlm = (baud_divisor >> 8) & 0xff;
+			NS16550Console->lcr = LCRVAL;
+			NS16550Console->mcr = MCRVAL;
+			NS16550Console->fcr = FCRVAL;
 #if defined(CONFIG_OMAP)
-			xConsole->mdr1 = 0;	/* select uart mode */
+			NS16550Console->mdr1 = 0;	/* select uart mode */
 #endif
-
-			//			/* Enable clock to USART0... */
-			//			AT91C_BASE_PS->PS_PCER = AT91C_PS_US0;NS16550
-
-			/* Disable all USART0 interrupt sources to begin... */
-
-			/* Reset various status bits (just in case)... */
-
-			//			AT91C_BASE_PIO->PIO_PDR = TXD0 | RXD0;  /* Enable RXD and TXD pins */
-			//			AT91C_BASE_US0->US_CR = US_RSTRX | US_RSTTX | US_RXDIS | US_TXDIS;
-
-			/* Clear Transmit and Receive Counters */
-			//AT91C_BASE_US0->US_RCR = 0;
-			//AT91C_BASE_US0->US_TCR = 0;
-
-			/* Input clock to baud rate generator is MCK */
-			//ulSpeed = configCPU_CLOCK_HZ * 10;
-			//ulSpeed = ulSpeed / 16;
-			//ulSpeed = ulSpeed / ulWantedBaud;
-
-			/* compute the error */
-			//ulCD  = ulSpeed / 10;
-			//if ((ulSpeed - (ulCD * 10)) >= 5)
-			//	ulCD++;
-
-			/* Define the baud rate divisor register */
-			//AT91C_BASE_US0->US_BRGR = ulCD;
-
-			/* Define the USART mode */
-			//AT91C_BASE_US0->US_MR = US_CLKS_MCK | US_CHRL_8 | US_PAR_NO | US_NBSTOP_1 | US_CHMODE_NORMAL;
-
-			/* Write the Timeguard Register */
-			//AT91C_BASE_US0->US_TTGR = 0;
-
-			/* Setup the interrupt for USART0.
-
-			Store interrupt handler function address in USART0 vector register... */
-			//AT91C_BASE_AIC->AIC_SVR[ portUSART0_AIC_CHANNEL ] = (unsigned long)vUART_ISR_Wrapper;
-
-			/* USART0 interrupt level-sensitive, priority 1... */
-			//AT91C_BASE_AIC->AIC_SMR[ portUSART0_AIC_CHANNEL ] = AIC_SRCTYPE_INT_LEVEL_SENSITIVE | 1;
-
-			/* Clear some pending USART0 interrupts (just in case)... */
-			//AT91C_BASE_US0->US_CR = US_RSTSTA;
-
-			/* Enable USART0 interrupt sources (but not Tx for now)... */
-			//AT91C_BASE_US0->US_IER = US_RXRDY;
-
-			/* Enable USART0 interrupts in the AIC... */
-			//AT91C_BASE_AIC->AIC_IECR = ( 1 << portUSART0_AIC_CHANNEL );
-
-			/* Enable receiver and transmitter... */
-			//AT91C_BASE_US0->US_CR = US_RXEN | US_TXEN;
 		}
 		portEXIT_CRITICAL();
 	}
@@ -239,7 +186,7 @@ signed long xSerialPutChar( signed char cOutChar, long xBlockTime )
 	if the interrupt has already removed the character the next interrupt
 	will simply turn off the Tx interrupt again. */
 	//AT91C_BASE_US0->US_IER = US_TXRDY;
-	xConsole->ier = (xConsole->ier | IER_THR_IT);
+	NS16550Console->ier = (NS16550Console->ier | IER_THR_IT);
 
 	return pdPASS;
 }

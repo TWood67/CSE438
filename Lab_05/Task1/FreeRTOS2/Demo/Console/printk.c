@@ -293,7 +293,6 @@ static int vsprintf_1(char *buf, const char *fmt, va_list args)
 
 		case 'X':
 			flags |= LARGE;
-			/* no break */
 		case 'x':
 			base = 16;
 			break;
@@ -301,7 +300,6 @@ static int vsprintf_1(char *buf, const char *fmt, va_list args)
 		case 'd':
 		case 'i':
 			flags |= SIGN;
-			/* no break */
 		case 'u':
 			break;
 
@@ -333,7 +331,7 @@ void serial_printk (const char *fmt, ...)
 {
 	va_list args;
 	char printbuffer[CFG_PBSIZE];
-	int kern_level;
+	int kLevel;	//the kernel level
 
 	va_start (args, fmt);
 
@@ -342,15 +340,15 @@ void serial_printk (const char *fmt, ...)
 	 */
 	(void) vsprintf_1 (printbuffer, fmt, args);
 
-	kern_level = printk_get_level(printbuffer);
+	kLevel = printk_get_level(printbuffer);
 
 	va_end (args);
 
 	/* Print the string */
-	if (kern_level == 0)
+	if (!kLevel)	//if it is 0, then there is no level
 		vSerialPutString(printbuffer);
-	else if (kern_level <= configKERNLOGLEVEL)
-		vSerialPutString(printbuffer + 2);
+	//else, there is a kernel level
+	else if (kLevel <= PRINTKKERNLOG) vSerialPutString(printbuffer + 2);
 }
 
 #endif
